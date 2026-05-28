@@ -38,7 +38,7 @@ if __name__ == "__main__" :
     p_value_L = chi2.sf(m.fval, m.ndof)
     
     print (f"valore di V_0: {m.values['V_0']}")
-    print (f"valore di L: {m.values["L"]}")
+    print (f"valore di L: {m.values['L']}")
     print (f"valore di offset: {m.values['offset']}")
     print (f"Chi quadro / ndof: {m.fval} / {m.ndof} = {m.fval / m.ndof}")
     print(f"P value: {p_value_L}")
@@ -57,7 +57,37 @@ if __name__ == "__main__" :
     x_axis = np.linspace (min (tempo_L[mask_fit_L]), max(tempo_L), 5000)
     
     ax.plot (x_axis,
-             [V_L_fit (x, m.values["V_0"], m.values["L"], m.values["offset"]) for x in x_axis]
+             V_L_fit (x_axis, m.values["V_0"], m.values["L"], m.values["offset"]),
+             label = "Fit tensione ai capi di L"
              )
+
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Tensione (V)")
+    ax.set_title ("Circuito RL: tensione ai capi di L")
+    ax.legend ()
+    ax.grid (True)
     
+    plt.show ()
+
+    # residui normalizzati L
+    residui_L = (V_L[mask_fit_L] - V_L_fit (tempo_L[mask_fit_L], m.values["V_0"], m.values["L"], m.values["offset"])) / delta_V_L[mask_fit_L]
+
+    fig, ax = plt.subplots ()
+
+    ax.errorbar (tempo_L[mask_fit_L], residui_L,
+                 yerr = np.ones_like (residui_L),
+                 capsize = 4,
+                 color = "indigo",
+                 linestyle = "None",
+                 marker = '^',
+                 label = "Residui L"
+                 )
+
+    ax.axhline (0, color = "red", linestyle = "--")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Residui normalizzati")
+    ax.set_title ("Residui normalizzati circuito RL")
+    ax.legend ()
+    ax.grid (True)
+
     plt.show ()
