@@ -73,7 +73,7 @@ if __name__ == "__main__" :
     plt.show ()
 
     # residui normalizzati L
-    residui_L = (V_L[mask_fit_L] - V_L_fit (tempo_L[mask_fit_L], m.values["V_0"], m.values["L"], m.values["offset"])) / delta_V_L[mask_fit_L]
+    residui_L = (V_L[mask_fit_L] - V_L_fit (tempo_L[mask_fit_L], m.values["V_0"], m.values["L"], m.values["offset"])) / sigma_V_L[mask_fit_L]
 
     fig, ax = plt.subplots ()
 
@@ -99,7 +99,7 @@ if __name__ == "__main__" :
 
     mask_fit_autoinduttanza = tempo_L <= t0_L
 
-    ls_a = LeastSquares (tempo_L[mask_fit_autoinduttanza], V_L[mask_fit_autoinduttanza], delta_V_L[mask_fit_autoinduttanza], V_L_fit_autoinduttanza)
+    ls_a = LeastSquares (tempo_L[mask_fit_autoinduttanza], V_L[mask_fit_autoinduttanza], sigma_V_L[mask_fit_autoinduttanza], V_L_fit_autoinduttanza)
     m_a = Minuit (ls_a, offset = 0, A = 10, B = -20, tau_1 = 6.677951421801726e-08, tau_2 = 6.68903067815001e-08, t0 = 0)
 
     m_a.migrad ()
@@ -140,3 +140,29 @@ if __name__ == "__main__" :
     ax.set_title ("Fit con autoinduttanza circuito RL")
     ax.grid (True)
     plt.show ()
+
+
+    # TOTALE
+    # Fit completo su tutti i dati
+    ls_full = LeastSquares(tempo_L, V_L, sigma_V_L, V_L_fit_autoinduttanza)
+    m_full = Minuit(ls_full, offset=6e-9, A=13, B=-22, 
+                tau_1=3e-6, tau_2=1.19e-7, t0=0)
+    m_full.migrad()
+
+    for par, val, err in zip(m_full.parameters, m_full.values, m_full.errors):
+        print(f"{par}: {val} ± {err}")
+
+    p_value_full = chi2.sf(m_full.fval, m_full.ndof)
+    print(f"Fit completo — chi2/ndof: {m_full.fval}/{m_full.ndof}")
+    print(f"P value: {p_value_full}")
+
+    fig, ax = plt.subplots()
+    ax.errorbar(tempo_L, V_L, yerr=sigma_V_L, capsize=4, color="indigo", linestyle="None", marker='o', label="Dati")
+    x_axis_full = np.linspace(min(tempo_L), max(tempo_L), 5000)
+    ax.plot(x_axis_full, V_L_fit_autoinduttanza(x_axis_full, m_full.values["offset"], m_full.values["A"], m_full.values["B"], m_full.values["tau_1"], m_full.values["tau_2"], m_full.values["t0"]), label="Fit completo", color="orange")
+    ax.set_xlabel("Tempo (s)")
+    ax.set_ylabel("Tensione (V)")
+    ax.set_title("Fit completo circuito RL")
+    ax.legend()
+    ax.grid(True)
+    plt.show()
