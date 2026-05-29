@@ -166,3 +166,32 @@ if __name__ == "__main__" :
     ax.legend()
     ax.grid(True)
     plt.show()
+
+    # ============================================================
+    # RICAVO DI C_p e R_L dai parametri del fit
+    # ============================================================
+
+    # Valori noti
+    #R   = m.values["R"]              # Ohm, resistenza esterna
+    L   = m.values["L"]              # H, dal fit della discesa
+    tau_1 = m_a.values["tau_1"]      # s, costante veloce
+    tau_2 = m_a.values["tau_2"]      # s, costante lenta
+
+    # Le relazioni di Vieta sui poli del circuito RLC danno:
+    #
+    #   prodotto dei poli:  1/(tau1*tau2) = (R + R_L) / (R * L * Cp)
+    #   somma dei poli:     1/tau1 + 1/tau2 = (R*R_L*Cp + L) / (R*L*Cp)
+    #
+    # Sistema di 2 equazioni in 2 incognite (Cp e R_L).
+    # Si risolve per sostituzione:
+    # Step 1: stima Cp con R_L << R (prima approssimazione)
+    Cp_approx = (tau_1 * tau_2) / L
+
+    # Step 2: ricava R_L dalla somma dei poli
+    R_L = ((1/tau_1 + 1/tau_2) * R * L * Cp_approx - L) / (R * Cp_approx)
+
+    # Step 3: Cp preciso con R_L noto
+    Cp = (R + R_L) * tau_1 * tau_2 / (R * L)
+    print(f"C_p  = {Cp:.4e} F  ({Cp*1e12:.2f} pF)")
+    print(f"R_L  = {R_L:.4e} Ohm")
+    print(f"L    = {L:.4e} H")
