@@ -4,194 +4,337 @@ from iminuit import Minuit
 from iminuit.cost import LeastSquares
 from scipy.stats import chi2
 
+
 R = 4.673e3 # Ohm
 t0_L = 0.50e-6 # s
 
+
+# Andamento tensione ai capi di L:
 def V_L_fit (t, V_0, L, offset):
     return offset + V_0 * np.exp (-1 * (t - t0_L) * R / L)
 
+
 def V_L_fit_parassita (t, offset, A, B, tau_1, tau_2, t0):
-    return offset + A * np.exp (-1 * (t- t0) / tau_1) + B * np.exp (-1 * (t - t0) / tau_2)
+    return offset + A * np.exp (-1 * (t - t0) / tau_1) + B * np.exp (-1 * (t - t0) / tau_2)
 
-if __name__ == "__main__" :
 
-    # Tensione misurata ai capi di R
+# Andamento tensione ai capi di R:
+def V_R_fit (t, V_0, L, offset):
+    return offset + V_0 * (1 - np.exp (-1 * (t - t0_L) * R / L))
 
-    tempo_R = np.loadtxt ("RL_tempi_R.txt")
-    tempo_R = tempo_R * 1e-6
+'''
+def V_R_fit_parassita (t, offset, A, B, tau_1, tau_2, t0):
+    return offset + A * (1 - np.exp (-1 * (t - t0) / tau_1)) + B * (1 - np.exp (-1 * (t - t0) / tau_2))
+'''
+
+
+if __name__ == "__main__":
+
+    # Tensione misurata ai capi di R:
+    tempo_R = np.loadtxt ("RL_tempi_R.txt") * 1e-6
     V_R = np.loadtxt ("RL_V_R.txt")
 
     # sensibilità --> dal minimo ci spostiamo vediamo la variazione di sens e non del segnale stesso
     Delta_V_R = np.ones (len (V_R)) * 0.04
     sigma_V_R = (2 * Delta_V_R) / np.sqrt (12)
 
-    # Tensione misurata ai capi di L
-    tempo_L = np.loadtxt ("RL_tempi_L.txt")
-    tempo_L = tempo_L * np.ones (len(tempo_L)) * 1e-6 # secondi
+    # Tensione misurata ai capi di L:
+    tempo_L = np.loadtxt ("RL_tempi_L.txt") * 1e-6
     V_L = np.loadtxt ("RL_V_L.txt") # V
-    
-    Delta_V_L= np.ones (len (V_L)) * 0.04
-    sigma_V_L = (2 *Delta_V_L) / np.sqrt (12)
 
-    mask_fit_L = tempo_L >= t0_L # (per tenere conto solo dei dati che scendono, come previsto dalla legge di carica)
+    Delta_V_L = np.ones (len (V_L)) * 0.04
+    sigma_V_L = (2 * Delta_V_L) / np.sqrt (12)
+
+
+    # TENSIONE AI CAPI DI L
+
+    # Fit della tensione ai capi di L:
+    mask_fit_L = tempo_L >= t0_L # per tenere conto solo dei dati che scendono, come previsto dalla legge di carica
 
     ls = LeastSquares (tempo_L[mask_fit_L], V_L[mask_fit_L], sigma_V_L[mask_fit_L], V_L_fit)
     m = Minuit (ls, V_0 = 7.8, L = 5e-3, offset = 0)
     m.migrad ()
 
-    p_value_L = chi2.sf(m.fval, m.ndof)
-    
-    print (f"valore di V_0: {m.values['V_0']}")
-    print (f"valore di L: {m.values['L']}")
-    print (f"valore di offset: {m.values['offset']}")
-    print (f"Chi quadro / ndof: {m.fval} / {m.ndof} = {m.fval / m.ndof}")
-    print(f"P value: {p_value_L}")
+    p_value_L = chi2.sf (m.fval, m.ndof)
+    V_0_fit = m.values["V_0"]
+    L_fit = m.values["L"]
+    offset_fit = m.values["offset"]
 
+    print (f"Chi2 L: {m.fval}\nndof L: {m.ndof}\nchi2/ndof L: {m.fval / m.ndof}\np-value L: {p_value_L}")
+    print (f"V_0 L: {V_0_fit} V")
+    print (f"L: {L_fit} H")
+    print (f"offset L: {offset_fit} V")
 
+    # Grafico della tensione ai capi di L:
     fig, ax = plt.subplots ()
-
-    ax.errorbar (tempo_L, V_L,
-                 yerr = sigma_V_L,
-                 capsize = 4,
-                 color = "indigo",
-                 linestyle = "None",
-                 marker = 'o'
-                 )
-    
-    x_axis = np.linspace (min (tempo_L[mask_fit_L]), max(tempo_L), 5000)
-    
-    # Fatto con la mask 
-    ax.plot (x_axis,
-             V_L_fit (x_axis, m.values["V_0"], m.values["L"], m.values["offset"]),
-             label = "Fit tensione ai capi di L",
-             color = "forestgreen"
-             )
-    ax.vlines (t0_L, ymin = 0.0, ymax = 6.92, color = "red", linestyle = "--", label = "t0")
+    x_axis = np.linspace (min (tempo_L[mask_fit_L]), max (tempo_L), 5000)
+    ax.errorbar (tempo_L, V_L, yerr = sigma_V_L, capsize = 4, color = "indigo", linestyle = "None", marker = "o", label = "Tensione ai capi di L")
+    ax.plot (x_axis, V_L_fit (x_axis, V_0_fit, L_fit, offset_fit), label = "Fit tensione ai capi di L", color = "forestgreen")
+    ax.vlines (t0_L, ymin = 0.0, ymax = max (V_L), color = "red", linestyle = "--", label = "t0")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Tensione (V)")
     ax.set_title ("Circuito RL: tensione ai capi di L")
     ax.legend ()
     ax.grid (True)
-    
     plt.show ()
 
-    # residui normalizzati L (con la mask)
-    residui_L = (V_L[mask_fit_L] - V_L_fit (tempo_L[mask_fit_L], m.values["V_0"], m.values["L"], m.values["offset"])) / sigma_V_L[mask_fit_L]
+    # Residui normalizzati del fit della tensione ai capi di L:
+    residui_L = (V_L[mask_fit_L] - V_L_fit (tempo_L[mask_fit_L], V_0_fit, L_fit, offset_fit)) / sigma_V_L[mask_fit_L]
 
     fig, ax = plt.subplots ()
-
-    ax.errorbar (tempo_L[mask_fit_L], residui_L,
-                 yerr = np.ones_like (residui_L),
-                 capsize = 4,
-                 color = "forestgreen",
-                 linestyle = "None",
-                 marker = '^',
-                 label = "Residui L"
-                 )
-
+    ax.errorbar (tempo_L[mask_fit_L], residui_L, yerr = np.ones_like (residui_L), capsize = 4, color = "forestgreen", linestyle = "None", marker = "^", label = "Residui L")
     ax.axhline (0, color = "red", linestyle = "--")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Residui normalizzati")
-    ax.set_title ("Residui normalizzati circuito RL")
+    ax.set_title ("Residui normalizzati del fit della tensione ai capi di L")
     ax.legend ()
     ax.grid (True)
-
     plt.show ()
 
-    # FIT circuito RLC con C parassita
+
+    # FIT CIRCUITO RLC CON C PARASSITA
 
     mask_fit_parassita = tempo_L <= t0_L
 
     ls_a = LeastSquares (tempo_L[mask_fit_parassita], V_L[mask_fit_parassita], sigma_V_L[mask_fit_parassita], V_L_fit_parassita)
     m_a = Minuit (ls_a, offset = 0, A = 10, B = -20, tau_1 = 6.677951421801726e-08, tau_2 = 6.68903067815001e-08, t0 = 0)
-
     m_a.migrad ()
 
-    print (f"valore di offset: {m_a.values['offset']}")
-    print (f"valore di A: {m_a.values['A']}")
-    print (f"valore di B: {m_a.values['B']}")
-    print (f"valore di tau_1: {m_a.values['tau_1']}")
-    print (f"valore di tau_2: {m_a.values['tau_2']}")
-    print (f"valore di t0: {m_a.values['t0']}")
+    p_value_autoinduttanza = chi2.sf (m_a.fval, m_a.ndof)
+    offset_fit_a = m_a.values["offset"]
+    A_fit_a = m_a.values["A"]
+    B_fit_a = m_a.values["B"]
+    tau_1_fit_a = m_a.values["tau_1"]
+    tau_2_fit_a = m_a.values["tau_2"]
+    t0_fit_a = m_a.values["t0"]
 
-    chi2_autoinduttanza = m_a.fval
-    ndof_autoinduttanza = m_a.ndof
-    p_value_autoinduttanza = chi2.sf(chi2_autoinduttanza, ndof_autoinduttanza)
-    print (f"p value autoinduttanza: {p_value_autoinduttanza}")
+    print (f"Chi2 C parassita: {m_a.fval}\nndof C parassita: {m_a.ndof}\nchi2/ndof C parassita: {m_a.fval / m_a.ndof}\np-value C parassita: {p_value_autoinduttanza}")
+    print (f"offset C parassita: {offset_fit_a}")
+    print (f"A C parassita: {A_fit_a}")
+    print (f"B C parassita: {B_fit_a}")
+    print (f"tau_1 C parassita: {tau_1_fit_a}")
+    print (f"tau_2 C parassita: {tau_2_fit_a}")
+    print (f"t0 C parassita: {t0_fit_a}")
 
+    # Grafico della tensione ai capi di L con C parassita:
     fig, ax = plt.subplots ()
-
-    ax.errorbar (tempo_L, V_L,
-                 yerr = sigma_V_L,
-                 capsize = 4,
-                 color = "indigo",
-                 linestyle = "None",
-                 marker = 'o'
-                 )
-    
-    x_axis2 = np.linspace (min (tempo_L), max(tempo_L[mask_fit_parassita]), 5000)
-    
-    ax.plot (x_axis2,
-             V_L_fit_parassita (x_axis2, m_a.values["offset"], m_a.values["A"], m_a.values["B"], m_a.values["tau_1"], m_a.values["tau_2"], m_a.values["t0"]),
-             label = "Fit con C parassita",
-             color = "lime"
-             )
-    
-    plt.legend ()
+    x_axis2 = np.linspace (min (tempo_L), max (tempo_L[mask_fit_parassita]), 5000)
+    ax.errorbar (tempo_L, V_L, yerr = sigma_V_L, capsize = 4, color = "indigo", linestyle = "None", marker = "o", label = "Tensione ai capi di L")
+    ax.plot (x_axis2, V_L_fit_parassita (x_axis2, offset_fit_a, A_fit_a, B_fit_a, tau_1_fit_a, tau_2_fit_a, t0_fit_a), label = "Fit con C parassita", color = "lime")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Tensione (V)")
     ax.set_title ("Fit circuito RLC con C parassita")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+
+    # Residui normalizzati del fit con C parassita:
+    residui_parassita = (V_L[mask_fit_parassita] - V_L_fit_parassita (tempo_L[mask_fit_parassita], offset_fit_a, A_fit_a, B_fit_a, tau_1_fit_a, tau_2_fit_a, t0_fit_a)) / sigma_V_L[mask_fit_parassita]
+
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_L[mask_fit_parassita], residui_parassita, yerr = np.ones_like (residui_parassita), capsize = 4, color = "lime", linestyle = "None", marker = "^", label = "Residui C parassita")
+    ax.axhline (0, color = "red", linestyle = "--")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Residui normalizzati")
+    ax.set_title ("Residui normalizzati del fit con C parassita")
+    ax.legend ()
     ax.grid (True)
     plt.show ()
 
 
-    # TOTALE
-    # Fit completo su tutti i dati
-    ls_full = LeastSquares(tempo_L, V_L, sigma_V_L, V_L_fit_parassita)
-    m_full = Minuit(ls_full, offset=6e-9, A=13, B=-22, 
-                tau_1=3e-6, tau_2=1.19e-7, t0=0)
-    m_full.migrad()
+    # FIT COMPLETO SU TUTTI I DATI
 
-    for par, val, err in zip(m_full.parameters, m_full.values, m_full.errors):
-        print(f"{par}: {val} ± {err}")
+    ls_full = LeastSquares (tempo_L, V_L, sigma_V_L, V_L_fit_parassita)
+    m_full = Minuit (ls_full, offset = 6e-9, A = 13, B = -22, tau_1 = 3e-6, tau_2 = 1.19e-7, t0 = 0)
+    m_full.migrad ()
 
-    p_value_full = chi2.sf(m_full.fval, m_full.ndof)
-    print(f"Fit completo — chi2/ndof: {m_full.fval}/{m_full.ndof}")
-    print(f"P value: {p_value_full}")
+    p_value_full = chi2.sf (m_full.fval, m_full.ndof)
+    offset_fit_full = m_full.values["offset"]
+    A_fit_full = m_full.values["A"]
+    B_fit_full = m_full.values["B"]
+    tau_1_fit_full = m_full.values["tau_1"]
+    tau_2_fit_full = m_full.values["tau_2"]
+    t0_fit_full = m_full.values["t0"]
 
-    fig, ax = plt.subplots()
-    ax.errorbar(tempo_L, V_L, yerr=sigma_V_L, capsize=4, color="indigo", linestyle="None", marker='o', label="Dati")
-    x_axis_full = np.linspace(min(tempo_L), max(tempo_L), 5000)
-    ax.plot(x_axis_full, V_L_fit_parassita(x_axis_full, m_full.values["offset"], m_full.values["A"], m_full.values["B"], m_full.values["tau_1"], m_full.values["tau_2"], m_full.values["t0"]), label="Fit completo", color="darkgreen")
-    ax.set_xlabel("Tempo (s)")
-    ax.set_ylabel("Tensione (V)")
-    ax.set_title("Fit circuito RLC con C parassita")
-    ax.legend()
-    ax.grid(True)
-    plt.show()
+    print (f"Chi2 fit completo: {m_full.fval}\nndof fit completo: {m_full.ndof}\nchi2/ndof fit completo: {m_full.fval / m_full.ndof}\np-value fit completo: {p_value_full}")
+    for par, val, err in zip (m_full.parameters, m_full.values, m_full.errors):
+        print (f"{par}: {val} ± {err}")
 
-    # residui normalizzati fit completo
-    residui_full = (V_L - V_L_fit_parassita(tempo_L, m_full.values["offset"], m_full.values["A"], m_full.values["B"], m_full.values["tau_1"], m_full.values["tau_2"], m_full.values["t0"])) / sigma_V_L    
+    # Grafico della tensione ai capi di L con fit completo:
+    fig, ax = plt.subplots ()
+    x_axis_full = np.linspace (min (tempo_L), max (tempo_L), 5000)
+    ax.errorbar (tempo_L, V_L, yerr = sigma_V_L, capsize = 4, color = "indigo", linestyle = "None", marker = "o", label = "Tensione ai capi di L")
+    ax.plot (x_axis_full, V_L_fit_parassita (x_axis_full, offset_fit_full, A_fit_full, B_fit_full, tau_1_fit_full, tau_2_fit_full, t0_fit_full), label = "Fit completo", color = "darkgreen")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Tensione (V)")
+    ax.set_title ("Fit completo della tensione ai capi di L")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
 
-    fig, ax = plt.subplots()
-    ax.errorbar(tempo_L, residui_full, yerr=np.ones_like(residui_full), capsize=4, color="darkgreen", linestyle="None", marker='^', label="Residui fit completo")
-    ax.axhline(0, color="red", linestyle="--")
-    ax.set_xlabel("Tempo (s)")
-    ax.set_ylabel("Residui normalizzati")
-    ax.set_title("Residui normalizzati circuito RLC con C parassita")
-    ax.legend()
-    ax.grid(True)
-    plt.show()
+    # Residui normalizzati fit completo:
+    residui_full = (V_L - V_L_fit_parassita (tempo_L, offset_fit_full, A_fit_full, B_fit_full, tau_1_fit_full, tau_2_fit_full, t0_fit_full)) / sigma_V_L
+
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_L, residui_full, yerr = np.ones_like (residui_full), capsize = 4, color = "darkgreen", linestyle = "None", marker = "^", label = "Residui fit completo")
+    ax.axhline (0, color = "red", linestyle = "--")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Residui normalizzati")
+    ax.set_title ("Residui normalizzati del fit completo")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+
+    '''
+    # Grafico finale con tutti i fit sovrapposti:
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_L, V_L, yerr = sigma_V_L, capsize = 4, color = "indigo", linestyle = "None", marker = "o", label = "Tensione ai capi di L")
+    ax.plot (x_axis, V_L_fit (x_axis, V_0_fit, L_fit, offset_fit), color = "forestgreen", label = "Fit esponenziale")
+    ax.plot (x_axis2, V_L_fit_parassita (x_axis2, offset_fit_a, A_fit_a, B_fit_a, tau_1_fit_a, tau_2_fit_a, t0_fit_a), color = "lime", label = "Fit con C parassita")
+    ax.plot (x_axis_full, V_L_fit_parassita (x_axis_full, offset_fit_full, A_fit_full, B_fit_full, tau_1_fit_full, tau_2_fit_full, t0_fit_full), color = "darkgreen", label = "Fit completo")
+    ax.vlines (t0_L, ymin = min (V_L), ymax = max (V_L), color = "red", linestyle = "--", label = "t0")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Tensione (V)")
+    ax.set_title ("Confronto tra i fit della tensione ai capi di L")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+
+    # Grafico finale con tutti i residui sovrapposti:
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_L[mask_fit_L], residui_L, yerr = np.ones_like (residui_L), capsize = 4, color = "forestgreen", linestyle = "None", marker = "o", label = "Residui fit esponenziale")
+    ax.errorbar (tempo_L[mask_fit_parassita], residui_parassita, yerr = np.ones_like (residui_parassita), capsize = 4, color = "lime", linestyle = "None", marker = "^", label = "Residui fit con C parassita")
+    ax.errorbar (tempo_L, residui_full, yerr = np.ones_like (residui_full), capsize = 4, color = "darkgreen", linestyle = "None", marker = "s", label = "Residui fit completo")
+    ax.axhline (0, color = "red", linestyle = "--")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Residui normalizzati")
+    ax.set_title ("Confronto tra i residui normalizzati dei fit della tensione ai capi di L")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+    '''
+
+
+    # TENSIONE AI CAPI DI R
+
+    # Fit della tensione ai capi di R:
+    ls_R = LeastSquares (tempo_R, V_R, sigma_V_R, V_R_fit)
+    m_R = Minuit (ls_R, V_0 = 4.5, L = L_fit, offset = 0)
+    m_R.migrad ()
+
+    p_value_R = chi2.sf (m_R.fval, m_R.ndof)
+    V_0_fit_R = m_R.values["V_0"]
+    L_fit_R = m_R.values["L"]
+    offset_fit_R = m_R.values["offset"]
+
+    print (f"Chi2 R: {m_R.fval}\nndof R: {m_R.ndof}\nchi2/ndof R: {m_R.fval / m_R.ndof}\np-value R: {p_value_R}")
+    print (f"V_0 R: {V_0_fit_R} V")
+    print (f"L R: {L_fit_R} H")
+    print (f"offset R: {offset_fit_R} V")
+
+    # Grafico della tensione ai capi di R:
+    fig, ax = plt.subplots ()
+    x_axis_R = np.linspace (min (tempo_R), max (tempo_R), 5000)
+    ax.errorbar (tempo_R, V_R, yerr = sigma_V_R, capsize = 4, color = "darkorange", linestyle = "None", marker = "o", label = "Tensione ai capi di R")
+    ax.plot (x_axis_R, V_R_fit (x_axis_R, V_0_fit_R, L_fit_R, offset_fit_R), label = "Fit tensione ai capi di R", color = "firebrick")
+    ax.vlines (t0_L, ymin = min (V_R), ymax = max (V_R), color = "red", linestyle = "--", label = "t0")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Tensione (V)")
+    ax.set_title ("Circuito RL: tensione ai capi di R")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+
+    # Residui normalizzati del fit della tensione ai capi di R:
+    residui_R = (V_R - V_R_fit (tempo_R, V_0_fit_R, L_fit_R, offset_fit_R)) / sigma_V_R
+
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_R, residui_R, yerr = np.ones_like (residui_R), capsize = 4, color = "firebrick", linestyle = "None", marker = "^", label = "Residui R")
+    ax.axhline (0, color = "red", linestyle = "--")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Residui normalizzati")
+    ax.set_title ("Residui normalizzati del fit della tensione ai capi di R")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+
+    '''
+    # FIT COMPLETO SU TUTTI I DATI DELLA TENSIONE AI CAPI DI R
+
+    ls_full_R = LeastSquares (tempo_R, V_R, sigma_V_R, V_R_fit_parassita)
+    m_full_R = Minuit (ls_full_R, offset = -3, A = 8, B = -3, tau_1 = 8e-7, tau_2 = 1e-7, t0 = 0)
+    m_full_R.migrad ()
+
+    p_value_full_R = chi2.sf (m_full_R.fval, m_full_R.ndof)
+    offset_fit_full_R = m_full_R.values["offset"]
+    A_fit_full_R = m_full_R.values["A"]
+    B_fit_full_R = m_full_R.values["B"]
+    tau_1_fit_full_R = m_full_R.values["tau_1"]
+    tau_2_fit_full_R = m_full_R.values["tau_2"]
+    t0_fit_full_R = m_full_R.values["t0"]
+
+    print (f"Chi2 fit completo R: {m_full_R.fval}\nndof fit completo R: {m_full_R.ndof}\nchi2/ndof fit completo R: {m_full_R.fval / m_full_R.ndof}\np-value fit completo R: {p_value_full_R}")
+    for par, val, err in zip (m_full_R.parameters, m_full_R.values, m_full_R.errors):
+        print (f"{par} R: {val} ± {err}")
+
+    # Grafico della tensione ai capi di R con fit completo:
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_R, V_R, yerr = sigma_V_R, capsize = 4, color = "darkorange", linestyle = "None", marker = "o", label = "Tensione ai capi di R")
+    ax.plot (x_axis_R, V_R_fit_parassita (x_axis_R, offset_fit_full_R, A_fit_full_R, B_fit_full_R, tau_1_fit_full_R, tau_2_fit_full_R, t0_fit_full_R), label = "Fit completo tensione ai capi di R", color = "darkred")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Tensione (V)")
+    ax.set_title ("Fit completo della tensione ai capi di R")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+
+    # Residui normalizzati fit completo della tensione ai capi di R:
+    residui_full_R = (V_R - V_R_fit_parassita (tempo_R, offset_fit_full_R, A_fit_full_R, B_fit_full_R, tau_1_fit_full_R, tau_2_fit_full_R, t0_fit_full_R)) / sigma_V_R
+
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_R, residui_full_R, yerr = np.ones_like (residui_full_R), capsize = 4, color = "darkred", linestyle = "None", marker = "^", label = "Residui fit completo R")
+    ax.axhline (0, color = "red", linestyle = "--")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Residui normalizzati")
+    ax.set_title ("Residui normalizzati del fit completo della tensione ai capi di R")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+
+    # Grafico finale con tutti i fit sovrapposti per R:
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_R, V_R, yerr = sigma_V_R, capsize = 4, color = "darkorange", linestyle = "None", marker = "o", label = "Tensione ai capi di R")
+    ax.plot (x_axis_R, V_R_fit (x_axis_R, V_0_fit_R, L_fit_R, offset_fit_R), color = "firebrick", label = "Fit esponenziale")
+    ax.plot (x_axis_R, V_R_fit_parassita (x_axis_R, offset_fit_full_R, A_fit_full_R, B_fit_full_R, tau_1_fit_full_R, tau_2_fit_full_R, t0_fit_full_R), color = "darkred", label = "Fit completo")
+    ax.vlines (t0_L, ymin = min (V_R), ymax = max (V_R), color = "red", linestyle = "--", label = "t0")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Tensione (V)")
+    ax.set_title ("Confronto tra i fit della tensione ai capi di R")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+
+    # Grafico finale con tutti i residui sovrapposti per R:
+    fig, ax = plt.subplots ()
+    ax.errorbar (tempo_R, residui_R, yerr = np.ones_like (residui_R), capsize = 4, color = "firebrick", linestyle = "None", marker = "o", label = "Residui fit esponenziale")
+    ax.errorbar (tempo_R, residui_full_R, yerr = np.ones_like (residui_full_R), capsize = 4, color = "darkred", linestyle = "None", marker = "s", label = "Residui fit completo")
+    ax.axhline (0, color = "red", linestyle = "--")
+    ax.set_xlabel ("Tempo (s)")
+    ax.set_ylabel ("Residui normalizzati")
+    ax.set_title ("Confronto tra i residui normalizzati dei fit della tensione ai capi di R")
+    ax.legend ()
+    ax.grid (True)
+    plt.show ()
+    '''
+
 
     # ============================================================
     # RICAVO DI C_p e R_L dai parametri del fit
     # ============================================================
 
-    # Valori noti
-    #R   = m.values["R"]              # Ohm, resistenza esterna
-    L   = m.values["L"]              # H, dal fit della discesa
-    tau_1 = m_a.values["tau_1"]      # s, costante veloce
-    tau_2 = m_a.values["tau_2"]      # s, costante lenta
+    L = L_fit
+    tau_1 = tau_1_fit_a
+    tau_2 = tau_2_fit_a
 
     # Le relazioni di Vieta sui poli del circuito RLC danno:
     #
@@ -204,10 +347,10 @@ if __name__ == "__main__" :
     Cp_approx = (tau_1 * tau_2) / L
 
     # Step 2: ricava R_L dalla somma dei poli
-    R_L = ((1/tau_1 + 1/tau_2) * R * L * Cp_approx - L) / (R * Cp_approx)
+    R_L = ((1 / tau_1 + 1 / tau_2) * R * L * Cp_approx - L) / (R * Cp_approx)
 
     # Step 3: Cp preciso con R_L noto
     Cp = (R + R_L) * tau_1 * tau_2 / (R * L)
-    print(f"C_p  = {Cp:.4e} F  ({Cp*1e12:.2f} pF)")
-    print(f"R_L  = {R_L:.4e} Ohm")
-    print(f"L    = {L:.4e} H")
+    print (f"C_p  = {Cp:.4e} F  ({Cp * 1e12:.2f} pF)")
+    print (f"R_L  = {R_L:.4e} Ohm")
+    print (f"L    = {L:.4e} H")
