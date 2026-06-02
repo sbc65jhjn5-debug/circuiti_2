@@ -109,12 +109,12 @@ if __name__ == "__main__":
     t0_fit_a = m_a.values["t0"]
 
     print (f"Chi2 C parassita: {m_a.fval}\nndof C parassita: {m_a.ndof}\nchi2/ndof C parassita: {m_a.fval / m_a.ndof}\np-value C parassita: {p_value_autoinduttanza}")
-    print (f"offset C parassita: {offset_fit_a}")
-    print (f"A C parassita: {A_fit_a}")
-    print (f"B C parassita: {B_fit_a}")
-    print (f"tau_1 C parassita: {tau_1_fit_a}")
-    print (f"tau_2 C parassita: {tau_2_fit_a}")
-    print (f"t0 C parassita: {t0_fit_a}")
+    print (f"offset C parassita: {offset_fit_a} \pm {m_a.errors['offset']} V")
+    print (f"A C parassita: {A_fit_a} \pm {m_a.errors['A']} V")
+    print (f"B C parassita: {B_fit_a} \pm {m_a.errors['B']} V")
+    print (f"tau_1 C parassita: {tau_1_fit_a} \pm {m_a.errors['tau_1']} s")
+    print (f"tau_2 C parassita: {tau_2_fit_a} \pm {m_a.errors['tau_2']} s")
+    print (f"t0 C parassita: {t0_fit_a} \pm {m_a.errors['t0']} s")
 
     # Grafico della tensione ai capi di L con C parassita:
     fig, ax = plt.subplots ()
@@ -228,9 +228,9 @@ if __name__ == "__main__":
     offset_fit_R = m_R.values["offset"]
 
     print (f"Chi2 R: {m_R.fval}\nndof R: {m_R.ndof}\nchi2/ndof R: {m_R.fval / m_R.ndof}\np-value R: {p_value_R}")
-    print (f"V_0 R: {V_0_fit_R} V")
-    print (f"L R: {L_fit_R} H")
-    print (f"offset R: {offset_fit_R} V")
+    print (f"V_0 R: {V_0_fit_R} \pm {m_R.errors['V_0']} V")
+    print (f"L R: {L_fit_R} \pm {m_R.errors['L']} H")
+    print (f"offset R: {offset_fit_R} \pm {m_R.errors['offset']} V")
 
     # Grafico della tensione ai capi di R:
     fig, ax = plt.subplots ()
