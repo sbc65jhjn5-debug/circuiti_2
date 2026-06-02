@@ -134,10 +134,11 @@ if __name__ == "__main__":
 
     print (f"Chi2 C con sinusoide: {m2.fval}\nndof C con sinusoide: {m2.ndof}\nchi2/ndof C con sinusoide: {m2.fval / m2.ndof}\np-value C con sinusoide: {p_value_C2}")
     print (f"Offset temporale C con sinusoide: {t_0_fit2} s")
-    print (f"V_0 C con sinusoide: {V_0_fit2} V")
-    print (f"A C con sinusoide: {A_fit2} V")
-    print (f"omega C con sinusoide: {omega_fit2} Hz")
-    print (f"phi C con sinusoide: {phi_fit2} rad")
+    print (f"V_0 C con sinusoide: {V_0_fit2} \pm {m2.errors['V_0']} V")
+    print (f"RC C con sinusoide: {RC_fit2} \pm {m2.errors['RC']} s")
+    print (f"A C con sinusoide: {A_fit2} \pm {m2.errors['A']} V")
+    print (f"omega C con sinusoide: {omega_fit2} \pm {m2.errors['omega']} Hz")
+    print (f"phi C con sinusoide: {phi_fit2} \pm {m2.errors['phi']} rad")
 
     # Grafico della tensione ai capi di C con la sinusoide:
     fig, ax = plt.subplots ()

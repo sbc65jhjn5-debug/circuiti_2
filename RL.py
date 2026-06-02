@@ -61,9 +61,9 @@ if __name__ == "__main__":
     offset_fit = m.values["offset"]
 
     print (f"Chi2 L: {m.fval}\nndof L: {m.ndof}\nchi2/ndof L: {m.fval / m.ndof}\np-value L: {p_value_L}")
-    print (f"V_0 L: {V_0_fit} V")
-    print (f"L: {L_fit} H")
-    print (f"offset L: {offset_fit} V")
+    print (f"V_0 L: {V_0_fit} \pm {m.errors['V_0']} V")
+    print (f"L: {L_fit} \pm {m.errors['L']} H")
+    print (f"offset L: {offset_fit} \pm {m.errors['offset']} V")
 
     # Grafico della tensione ai capi di L:
     fig, ax = plt.subplots ()
