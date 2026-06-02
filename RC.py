@@ -144,7 +144,7 @@ if __name__ == "__main__":
     x_axis = np.linspace (min (tempo_C), max (tempo_C), 5000)
     x_axis_mask_sin = x_axis < tempo_C[-9]
     ax.errorbar (tempo_C, V_C, yerr = sigma_V_C, fmt = "o", label = "Tensione ai capi di C", capsize = 4, color = "darkslateblue")
-    ax.plot (x_axis, V_C_fit2_mask_sin (x_axis, t_0_fit2, V_0_fit2, RC_fit2, offset_fit2, A_fit2, omega_fit2, phi_fit2, x_axis_mask_sin), color = "dodgerblue", label = "Fit tensione ai capi di C con sinusoide")
+    ax.plot (x_axis, V_C_fit2_mask_sin (x_axis, t_0_fit2, V_0_fit2, RC_fit2, offset_fit2, A_fit2, omega_fit2, phi_fit2, x_axis_mask_sin), color = "rebeccapurple", label = "Fit tensione ai capi di C con sinusoide")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Tensione (V)")
     ax.set_title ("Tensione ai capi di C in un circuito RC con sinusoide")
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     # Residui normalizzati del fit con sinusoide:
     residui_normalizzati2 = (V_C - V_C_fit2_con_mask_sin (tempo_C, t_0_fit2, V_0_fit2, RC_fit2, offset_fit2, A_fit2, omega_fit2, phi_fit2)) / sigma_V_C
     fig, ax = plt.subplots ()
-    ax.errorbar (tempo_C, residui_normalizzati2, yerr = np.ones_like (residui_normalizzati2), fmt = "^", color = "dodgerblue", capsize = 4)
+    ax.errorbar (tempo_C, residui_normalizzati2, yerr = np.ones_like (residui_normalizzati2), fmt = "^", color = "rebeccapurple", capsize = 4)
     ax.axhline (0, color = "red", linestyle = "--")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Residui normalizzati")

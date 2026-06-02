@@ -235,9 +235,8 @@ if __name__ == "__main__":
     # Grafico della tensione ai capi di R:
     fig, ax = plt.subplots ()
     x_axis_R = np.linspace (min (tempo_R), max (tempo_R), 5000)
-    ax.errorbar (tempo_R, V_R, yerr = sigma_V_R, capsize = 4, color = "darkorange", linestyle = "None", marker = "o", label = "Tensione ai capi di R")
-    ax.plot (x_axis_R, V_R_fit (x_axis_R, V_0_fit_R, L_fit_R, offset_fit_R), label = "Fit tensione ai capi di R", color = "firebrick")
-    ax.vlines (t0_L, ymin = min (V_R), ymax = max (V_R), color = "red", linestyle = "--", label = "t0")
+    ax.errorbar (tempo_R, V_R, yerr = sigma_V_R, capsize = 4, color = "indigo", linestyle = "None", marker = "o", label = "Tensione ai capi di R")
+    ax.plot (x_axis_R, V_R_fit (x_axis_R, V_0_fit_R, L_fit_R, offset_fit_R), label = "Fit tensione ai capi di R", color = "lightseagreen")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Tensione (V)")
     ax.set_title ("Circuito RL: tensione ai capi di R")
@@ -249,7 +248,7 @@ if __name__ == "__main__":
     residui_R = (V_R - V_R_fit (tempo_R, V_0_fit_R, L_fit_R, offset_fit_R)) / sigma_V_R
 
     fig, ax = plt.subplots ()
-    ax.errorbar (tempo_R, residui_R, yerr = np.ones_like (residui_R), capsize = 4, color = "firebrick", linestyle = "None", marker = "^", label = "Residui R")
+    ax.errorbar (tempo_R, residui_R, yerr = np.ones_like (residui_R), capsize = 4, color = "lightseagreen", linestyle = "None", marker = "^", label = "Residui R")
     ax.axhline (0, color = "red", linestyle = "--")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Residui normalizzati")
