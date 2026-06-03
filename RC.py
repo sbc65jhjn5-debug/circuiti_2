@@ -271,12 +271,17 @@ if __name__ == "__main__":
     m_R.migrad ()
     p_value_R = chi2.sf (m_R.fval, m_R.ndof)
     V_0_fit_R = m_R.values["V_0"]
+    sigma_V_0_fit_R = m_R.errors["V_0"]
     offset_fit_R = m_R.values["offset"]
+    sigma_offset_fit_R = m_R.errors["offset"]
     t_0_fit_R = m_R.values["t_0"]
+    sigma_t_0_fit_R = m_R.errors["t_0"]
     RC_fit_R = m_R.values["RC"]
+    sigma_RC_fit_R = m_R.errors["RC"]
     print (f"Chi2 R: {m_R.fval}\nndof R: {m_R.ndof}\nchi2/ndof R: {m_R.fval / m_R.ndof}\np-value R: {p_value_R}")
-    print (f"Offset temporale R: {t_0_fit_R} s")
-    print (f"V_0 R: {V_0_fit_R} V")
+    print (f"Offset temporale R: {t_0_fit_R} +- {sigma_t_0_fit_R} s")
+    print (f"V_0 R: {V_0_fit_R} +- {sigma_V_0_fit_R} V")
+    print (f"RC R: {RC_fit_R} +- {sigma_RC_fit_R} s")
 
     # Grafico della tensione ai capi di R:
     fig, ax = plt.subplots ()
