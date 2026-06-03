@@ -23,7 +23,7 @@ def fit_C (t, t_0, A, B, gamma_lento, gamma_veloce, offset, D, f_sin, phi_sin):
 
 if __name__ == "__main__":
 
-    L_stima = 42.6e-3 # Henry
+    L_stima = 4.26e-3 # Henry
     C = 10e-9 # F
     delta_V = 0.04 # V
     sigma_V = (2 * delta_V) / np.sqrt (12) # V, errore standard di una misura con risoluzione delta_V
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # residui normalizzati A
     residui_A = (V_A - fit_A (tempi_A, *mA.values)) / delta_V
     fig, ax = plt.subplots ()
-    ax.errorbar (tempi_A, residui_A, yerr = np.ones_like (residui_A), marker = "^", linestyle = "none", label = "Residui A", color = "darkslateblue", capsize = 4)
+    ax.errorbar (tempi_A, residui_A, yerr = np.ones_like (residui_A), marker = "^", linestyle = "none", label = "Residui A", color = "dodgerblue", capsize = 4)
     ax.axhline (0, color = "red", linestyle = "--")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Residui normalizzati")
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     # residui normalizzati B
     residui_B = (V_B - fit_B (tempi_B, *mB.values)) / sigma_B
     fig, ax = plt.subplots ()
-    ax.errorbar (tempi_B, residui_B, yerr = np.ones_like (residui_B), marker = "^", linestyle = "none", label = "Residui B", color = "darkslateblue", capsize = 4)
+    ax.errorbar (tempi_B, residui_B, yerr = np.ones_like (residui_B), marker = "^", linestyle = "none", label = "Residui B", color = "hotpink", capsize = 4)
     ax.axhline (0, color = "red", linestyle = "--")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Residui normalizzati")
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     ax.errorbar (tempi_C, V_C, yerr = Delta_C, marker = "o", linestyle = "none", label = "Dati C", color = "darkslateblue", capsize = 4)
     t_fit_C = np.linspace (tempi_C[0], tempi_C[-1], 1000)
     V_fit_C = fit_C (t_fit_C, *mC.values)
-    ax.plot (t_fit_C, V_fit_C, label = "Oscillatore sovrasmorzato", color = "hotpink")
+    ax.plot (t_fit_C, V_fit_C, label = "Oscillatore sovrasmorzato", color = "orchid")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Tensione (V)")
     ax.set_title ("Configurazione di sovrasmorzamento")
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     # residui normalizzati C
     residui_C = (V_C - fit_C (tempi_C, *mC.values)) / sigma_C
     fig, ax = plt.subplots ()
-    ax.errorbar (tempi_C, residui_C, yerr = np.ones_like (residui_C), marker = "^", linestyle = "none", label = "Residui C", color = "darkslateblue", capsize = 4)
+    ax.errorbar (tempi_C, residui_C, yerr = np.ones_like (residui_C), marker = "^", linestyle = "none", label = "Residui C", color = "orchid", capsize = 4)
     ax.axhline (0, color = "red", linestyle = "--")
     ax.set_xlabel ("Tempo (s)")
     ax.set_ylabel ("Residui normalizzati")
