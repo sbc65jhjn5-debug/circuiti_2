@@ -327,29 +327,100 @@ if __name__ == "__main__":
     '''
 
 
-    # ============================================================
-    # RICAVO DI C_p e R_L dai parametri del fit
-    # ============================================================
-
-    L = L_fit
-    tau_1 = tau_1_fit_a
-    tau_2 = tau_2_fit_a
-
-    # Le relazioni di Vieta sui poli del circuito RLC danno:
+   # ============================================================
+    # RICAVO DI R_L e C_p dai parametri del fit parassita
     #
-    #   prodotto dei poli:  1/(tau1*tau2) = (R + R_L) / (R * L * Cp)
-    #   somma dei poli:     1/tau1 + 1/tau2 = (R*R_L*Cp + L) / (R*L*Cp)
+    # Modello fisico (dal grafico):
+    #   - salita  (t < t_picco): C_p si carica attraverso R + R_L
+    #                             → tau_2 ≈ (R + R_L) * C_p
+    #   - discesa (t > t_picco): L si scarica attraverso R + R_L
+    #                             → tau_1 = L / (R + R_L)
     #
-    # Sistema di 2 equazioni in 2 incognite (Cp e R_L).
-    # Si risolve per sostituzione:
-    # Step 1: stima Cp con R_L << R (prima approssimazione)
-    Cp_approx = (tau_1 * tau_2) / L
-
-    # Step 2: ricava R_L dalla somma dei poli
-    R_L = ((1 / tau_1 + 1 / tau_2) * R * L * Cp_approx - L) / (R * Cp_approx)
-
-    # Step 3: Cp preciso con R_L noto
-    Cp = (R + R_L) * tau_1 * tau_2 / (R * L)
-    print (f"C_p  = {Cp:.4e} F  ({Cp * 1e12:.2f} pF)")
-    print (f"R_L  = {R_L:.4e} Ohm")
-    print (f"L    = {L:.4e} H")
+    # Quindi:
+    #   R + R_L = L / tau_1
+    #   R_L     = L / tau_1 - R
+    #   C_p     = tau_2 / (R + R_L) = tau_1 * tau_2 / L
+    # ============================================================
+ 
+    # --- Valori noti ---
+    R       = 4.673e3       # Ohm (resistenza esterna, misurata)
+ 
+    # --- Dal fit esponenziale su V_L (discesa RL pura) ---
+    L       = L_fit         # H   <-- metti qui il valore di L_fit
+    dL      = m.errors['L'] # H   <-- e il suo errore da Minuit
+ 
+    # --- Dal fit parassita (V_L_fit_parassita su t < t0) ---
+    tau_1   = tau_1_fit_a           # s  (costante di discesa ~ L/(R+R_L))
+    tau_2   = tau_2_fit_a           # s  (costante di salita  ~ (R+R_L)*Cp)
+    d_tau_1 = m_a.errors['tau_1']   # s
+    d_tau_2 = m_a.errors['tau_2']   # s
+ 
+    # ============================================================
+    # CALCOLO CENTRALE
+    # ============================================================
+ 
+    R_tot   = L / tau_1                     # R + R_L  [Ohm]
+    R_L     = R_tot - R                     # R_L      [Ohm]
+    C_p     = (tau_1 * tau_2) / L           # C_p      [F]
+ 
+    # ============================================================
+    # PROPAGAZIONE DEGLI ERRORI (derivate parziali)
+    # ============================================================
+ 
+    # R_tot = L / tau_1
+    dR_tot_dL     =  1.0 / tau_1
+    dR_tot_dtau1  = -L   / tau_1**2
+ 
+    sigma_R_tot = np.sqrt(
+        (dR_tot_dL    * dL     )**2 +
+       (dR_tot_dtau1 * d_tau_1)**2
+    )
+ 
+    # R_L = R_tot - R  →  sigma_R_L = sigma_R_tot (R è esatta)
+    sigma_R_L = sigma_R_tot
+ 
+    # C_p = tau_1 * tau_2 / L
+    dCp_dtau1 =  tau_2 / L
+    dCp_dtau2 =  tau_1 / L
+    dCp_dL    = -(tau_1 * tau_2) / L**2
+ 
+    sigma_C_p = np.sqrt(
+       (dCp_dtau1 * d_tau_1)**2 +
+       (dCp_dtau2 * d_tau_2)**2 +
+       (dCp_dL    * dL     )**2
+    )
+ 
+# ============================================================
+# VERIFICA CONSISTENZA
+# ============================================================
+ 
+# tau_1 dovrebbe essere ≈ L / (R + R_L)  [lo è per costruzione]
+    tau_1_check = L / (R + R_L)
+ 
+# tau_2 dovrebbe essere ≈ (R + R_L) * C_p
+    tau_2_check = (R + R_L) * C_p
+ 
+# Resistenza critica del circuito RLC
+    R_critica = 2 * np.sqrt(L / C_p)
+ 
+# ============================================================
+# STAMPA RISULTATI
+# ============================================================
+ 
+    print("=" * 55)
+    print("  RISULTATI  R_L  e  C_p")
+    print("=" * 55)
+    print(f"  R + R_L  = {R_tot:.2f} ± {sigma_R_tot:.2f}  Ohm")
+    print(f"  R_L      = {R_L:.2f} ± {sigma_R_L:.2f}  Ohm")
+    print(f"  C_p      = {C_p*1e12:.3f} ± {sigma_C_p*1e12:.3f}  pF")
+    print()
+    print("  Verifica di consistenza:")
+    print(f"  tau_1 (fit)   = {tau_1*1e6:.4f} us")
+    print(f"  L/(R+R_L)     = {tau_1_check*1e6:.4f} us   <- deve coincidere")
+    print(f"  tau_2 (fit)   = {tau_2*1e9:.2f} ns")
+    print(f"  (R+R_L)*C_p   = {tau_2_check*1e9:.2f} ns   <- deve coincidere")
+    print()
+    print(f"  R_critica     = {R_critica:.1f} Ohm")
+    print(f"  R_L / R       = {R_L/R*100:.1f} %")
+    print(f"  (R+R_L) / R_c = {(R+R_L)/R_critica:.3f}  (>1 = sovrasmorzato)")
+    print("=" * 55)
